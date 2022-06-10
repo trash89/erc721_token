@@ -1,156 +1,119 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
-import { utils, constants } from "ethers";
-import { useContractRead } from "wagmi";
+
+import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import FormControl from "@mui/material/FormControl";
+import FormLabel from "@mui/material/FormLabel";
+
+import { utils, constants, BigNumber } from "ethers";
+import { useContract, useContractRead } from "wagmi";
 import { addressNotZero, shortenAddress, formatBalance } from "../utils/utils";
-import { useIsMounted, useTokenDetails, useGetFuncWrite } from "../hooks";
+import { useIsMounted, useNFTDetails, useGetFuncWrite } from "../hooks";
 import { GetStatusIcon, ShowError } from ".";
 
-const MyNFT = ({ activeChain, tokenAddress, tokenABI, account }) => {
+// owner
+// balanceOf
+// name
+// symbol
+// totalSupply
+
+// safeMint
+// burn
+// approve
+// tokenOfOwnerByIndex
+// tokenURI
+// transferOwnership
+// renounceOwnership
+// pause
+// unpause
+
+// transferFrom
+// safeTransferFrom
+
+// ownerOf
+
+// tokenByIndex
+
+const verifyAddress = (address) => {
+  if (address) {
+    if (utils.isAddress(address)) return utils.getAddress(address);
+    else return constants.AddressZero;
+  } else return account?.address;
+};
+
+const MyNFT = ({ activeChain, nftAddress, nftABI, account }) => {
   const isMounted = useIsMounted();
   const [disabled, setDisabled] = useState(false);
 
   const isEnabled = Boolean(
-    isMounted && activeChain && account && addressNotZero(tokenAddress)
+    isMounted && activeChain && account && addressNotZero(nftAddress)
   );
-  const [input, setInput] = useState({ to: "", from: "", value: "0" });
+  const [input, setInput] = useState({
+    from: "",
+    to: "",
+    URI: "",
+    tokenId: "",
+    interfaceId: "",
+  });
   const [isErrorInput, setIsErrorInput] = useState({
-    to: false,
     from: false,
-    value: false,
+    to: false,
+    URI: false,
+    tokenId: false,
+    interfaceId: false,
   });
 
-  // token details for display
+  const nftContract = useContract({
+    addressOrName: nftAddress,
+    contractInterface: nftABI,
+  });
+  // NFT details for display
   const {
+    isSuccess,
     isOwner,
-    ContractOwner: tokenOwner,
-    token,
-    refetchToken,
+    ContractOwner: nftOwner,
+    name,
+    symbol,
     balanceOf,
-    allowance,
-  } = useTokenDetails(activeChain, tokenAddress, tokenABI, account);
+    totalSupply,
+  } = useNFTDetails(activeChain, nftAddress, nftABI, account);
 
-  const verifyAddress = (address) => {
-    if (address) {
-      if (utils.isAddress(address)) return utils.getAddress(address);
-      else return constants.AddressZero;
-    } else return account?.address;
-  };
+  let nftArray = [
+    ...Array.from({ length: parseInt(balanceOf) }, (_, idx) => `${idx}`),
+  ];
 
+  // safeMint function
   const {
-    data: allowanceOther,
-    error: errorAllowanceOther,
-    isError: isErrorAllowanceOther,
-  } = useContractRead(
-    {
-      addressOrName: tokenAddress,
-      contractInterface: tokenABI,
-    },
-    "allowance",
-    {
-      args: [verifyAddress(input.from), account?.address],
-      enabled: Boolean(isEnabled && verifyAddress(input.from)),
-      watch: Boolean(isEnabled && verifyAddress(input.from)),
-    }
-  );
-
-  // mint function
-  const {
-    error: errorMint,
-    isError: isErrorMint,
-    write: writeMint,
-    status: statusMint,
-    statusWait: statusMintWait,
-  } = useGetFuncWrite("mint", activeChain, tokenAddress, tokenABI, isEnabled);
-
-  // burnFrom function
-  const {
-    error: errorBurnFrom,
-    isError: isErrorBurnFrom,
-    write: writeBurnFrom,
-    status: statusBurnFrom,
-    statusWait: statusBurnFromWait,
-  } = useGetFuncWrite(
-    "burnFrom",
-    activeChain,
-    tokenAddress,
-    tokenABI,
-    isEnabled
-  );
+    error: errorSafeMint,
+    isError: isErrorSafeMint,
+    write: writeSafeMint,
+    status: statusSafeMint,
+    statusWait: statusSafeMintWait,
+  } = useGetFuncWrite("safeMint", activeChain, nftAddress, nftABI, isEnabled);
 
   // burn function
-
   const {
     error: errorBurn,
     isError: isErrorBurn,
     write: writeBurn,
     status: statusBurn,
     statusWait: statusBurnWait,
-  } = useGetFuncWrite("burn", activeChain, tokenAddress, tokenABI, isEnabled);
+  } = useGetFuncWrite("burn", activeChain, nftAddress, nftABI, isEnabled);
 
-  // increaseAllowance(spender, value)
-  const {
-    error: errorIncreaseAllowance,
-    isError: isErrorIncreaseAllowance,
-    write: writeIncreaseAllowance,
-    status: statusIncreaseAllowance,
-    statusWait: statusIncreaseAllowanceWait,
-  } = useGetFuncWrite(
-    "increaseAllowance",
-    activeChain,
-    tokenAddress,
-    tokenABI,
-    isEnabled
-  );
-
-  // decreaseAllowance(spender, value);
-  const {
-    error: errorDecreaseAllowance,
-    isError: isErrorDecreaseAllowance,
-    write: writeDecreaseAllowance,
-    status: statusDecreaseAllowance,
-    statusWait: statusDecreaseAllowanceWait,
-  } = useGetFuncWrite(
-    "decreaseAllowance",
-    activeChain,
-    tokenAddress,
-    tokenABI,
-    isEnabled
-  );
-
-  // transfer(to, amount);
-  const {
-    error: errorTransfer,
-    isError: isErrorTransfer,
-    write: writeTransfer,
-    status: statusTransfer,
-    statusWait: statusTransferWait,
-  } = useGetFuncWrite(
-    "transfer",
-    activeChain,
-    tokenAddress,
-    tokenABI,
-    isEnabled
-  );
-
-  // approve(spender, amount);
+  // approve(address to, uint256 tokenId)
   const {
     error: errorApprove,
     isError: isErrorApprove,
     write: writeApprove,
     status: statusApprove,
     statusWait: statusApproveWait,
-  } = useGetFuncWrite(
-    "approve",
-    activeChain,
-    tokenAddress,
-    tokenABI,
-    isEnabled
-  );
+  } = useGetFuncWrite("approve", activeChain, nftAddress, nftABI, isEnabled);
 
   // transferOwnership(address newOwner)
   const {
@@ -162,12 +125,27 @@ const MyNFT = ({ activeChain, tokenAddress, tokenABI, account }) => {
   } = useGetFuncWrite(
     "transferOwnership",
     activeChain,
-    tokenAddress,
-    tokenABI,
+    nftAddress,
+    nftABI,
     isEnabled
   );
 
-  // transferFrom(address from, address to, uint256 amount)
+  // renounceOwnership(address newOwner)
+  const {
+    error: errorRenounceOwnership,
+    isError: isErrorRenounceOwnership,
+    write: writeRenounceOwnership,
+    status: statusRenounceOwnership,
+    statusWait: statusRenounceOwnershipWait,
+  } = useGetFuncWrite(
+    "renounceOwnership",
+    activeChain,
+    nftAddress,
+    nftABI,
+    isEnabled
+  );
+
+  // transferFrom(address from, address to, uint256 tokenId)
   const {
     error: errorTransferFrom,
     isError: isErrorTransferFrom,
@@ -177,183 +155,119 @@ const MyNFT = ({ activeChain, tokenAddress, tokenABI, account }) => {
   } = useGetFuncWrite(
     "transferFrom",
     activeChain,
-    tokenAddress,
-    tokenABI,
+    nftAddress,
+    nftABI,
     isEnabled
   );
+
+  // pause()
+  const {
+    error: errorPause,
+    isError: isErrorPause,
+    write: writePause,
+    status: statusPause,
+    statusWait: statusPauseWait,
+  } = useGetFuncWrite("pause", activeChain, nftAddress, nftABI, isEnabled);
+
+  // unpause()
+  const {
+    error: errorUnpause,
+    isError: isErrorUnpause,
+    write: writeUnpause,
+    status: statusUnpause,
+    statusWait: statusUnpauseWait,
+  } = useGetFuncWrite("unpause", activeChain, nftAddress, nftABI, isEnabled);
 
   // useEffect to setup values
   useEffect(() => {
     if (
-      statusMint !== "loading" &&
+      statusSafeMint !== "loading" &&
       statusBurn !== "loading" &&
-      statusBurnFrom !== "loading" &&
-      statusIncreaseAllowance !== "loading" &&
-      statusDecreaseAllowance !== "loading" &&
-      statusTransfer !== "loading" &&
       statusApprove !== "loading" &&
       statusTransferOwnership !== "loading" &&
+      statusRenounceOwnership !== "loading" &&
       statusTransferFrom !== "loading" &&
-      statusMintWait !== "loading" &&
+      statusPause !== "loading" &&
+      statusUnpause !== "loading" &&
+      statusSafeMintWait !== "loading" &&
       statusBurnWait !== "loading" &&
-      statusBurnFromWait !== "loading" &&
-      statusIncreaseAllowanceWait !== "loading" &&
-      statusDecreaseAllowanceWait !== "loading" &&
-      statusTransferWait !== "loading" &&
       statusApproveWait !== "loading" &&
       statusTransferOwnershipWait !== "loading" &&
-      statusTransferFromWait !== "loading"
+      statusRenounceOwnershipWait !== "loading" &&
+      statusTransferFromWait !== "loading" &&
+      statusPauseWait !== "loading" &&
+      statusUnpauseWait !== "loading"
     ) {
       if (disabled) setDisabled(false);
-      setInput({ to: "", from: "", value: "0" });
-      refetchToken();
+      setInput({ from: "", to: "", URI: "", tokenId: "", interfaceId: "" });
     }
     // eslint-disable-next-line
   }, [
-    statusMint,
+    statusSafeMint,
     statusBurn,
-    statusBurnFrom,
-    statusIncreaseAllowance,
-    statusDecreaseAllowance,
-    statusTransfer,
     statusApprove,
     statusTransferOwnership,
+    statusRenounceOwnership,
     statusTransferFrom,
-    statusMintWait,
+    statusPause,
+    statusUnpause,
+    statusSafeMintWait,
     statusBurnWait,
-    statusBurnFromWait,
-    statusIncreaseAllowanceWait,
-    statusDecreaseAllowanceWait,
-    statusTransferWait,
     statusApproveWait,
     statusTransferOwnershipWait,
+    statusRenounceOwnershipWait,
     statusTransferFromWait,
+    statusPauseWait,
+    statusUnpauseWait,
   ]);
 
-  // handleMint
-  const handleMint = (e) => {
+  // handleSafeMint
+  const handleSafeMint = (e) => {
     e.preventDefault();
-    if (input.value && utils.parseEther(input.value) > 0) {
-      if (input.to && utils.isAddress(input.to)) {
-        setDisabled(true);
-        writeMint({
-          args: [utils.getAddress(input.to), utils.parseEther(input.value)],
-        });
+    if (input.URI && input.URI !== "") {
+      let localTo = "";
+      if (input.to && input.to !== "" && utils.isAddress(input.to)) {
+        localTo = utils.getAddress(input.to);
       } else {
-        setDisabled(true);
-        writeMint({
-          args: [
-            utils.getAddress(account?.address),
-            utils.parseEther(input.value),
-          ],
-        });
+        localTo = account?.address;
       }
+      setDisabled(true);
+      writeSafeMint({
+        args: [localTo, input.URI],
+      });
     } else {
-      setIsErrorInput({ ...isErrorInput, value: true });
+      setIsErrorInput({ ...isErrorInput, URI: true });
     }
   };
 
-  // handleBurn and burnFrom
+  // handleBurn
   const handleBurn = (e) => {
     e.preventDefault();
-    if (input.value && utils.parseEther(input.value) > 0) {
-      if (input.to && utils.isAddress(input.to)) {
-        setDisabled(true);
-        writeBurnFrom({
-          args: [utils.getAddress(input.to), utils.parseEther(input.value)],
-        });
-      } else {
-        setDisabled(true);
-        writeBurn({
-          args: [utils.parseEther(input.value)],
-        });
-      }
+    if (input.tokenId && input.tokenId !== "" && parseInt(input.tokenId) >= 0) {
+      setDisabled(true);
+      writeBurn({
+        args: [parseInt(input.tokenId)],
+      });
     } else {
-      setIsErrorInput({ ...isErrorInput, value: true });
-    }
-  };
-
-  // handleIncreaseAllowance
-  const handleIncreaseAllowance = (e) => {
-    e.preventDefault();
-    if (input.value && utils.parseEther(input.value) > 0) {
-      if (input.to && utils.isAddress(input.to)) {
-        setDisabled(true);
-        writeIncreaseAllowance({
-          args: [utils.getAddress(input.to), utils.parseEther(input.value)],
-        });
-      } else {
-        setDisabled(true);
-        writeIncreaseAllowance({
-          args: [
-            utils.getAddress(account?.address),
-            utils.parseEther(input.value),
-          ],
-        });
-      }
-    } else {
-      setIsErrorInput({ ...isErrorInput, value: true });
-    }
-  };
-
-  // handleDecreaseAllowance
-  const handleDecreaseAllowance = (e) => {
-    e.preventDefault();
-    if (input.value && utils.parseEther(input.value) > 0) {
-      if (input.to && utils.isAddress(input.to)) {
-        setDisabled(true);
-        writeDecreaseAllowance({
-          args: [utils.getAddress(input.to), utils.parseEther(input.value)],
-        });
-      } else {
-        setDisabled(true);
-        writeDecreaseAllowance({
-          args: [
-            utils.getAddress(account?.address),
-            utils.parseEther(input.value),
-          ],
-        });
-      }
-    } else {
-      setIsErrorInput({ ...isErrorInput, value: true });
+      setIsErrorInput({ ...isErrorInput, tokenId: true });
     }
   };
 
   // handleApprove
   const handleApprove = (e) => {
     e.preventDefault();
-    if (input.value && utils.parseEther(input.value) > 0) {
+    if (input.tokenId && input.tokenId !== "" && parseInt(input.tokenId) >= 0) {
       if (input.to && utils.isAddress(input.to)) {
         const formattedAddress = utils.getAddress(input.to);
         setDisabled(true);
         writeApprove({
-          args: [formattedAddress, utils.parseEther("0")],
-        });
-        writeApprove({
-          args: [formattedAddress, utils.parseEther(input.value)],
+          args: [formattedAddress, parseInt(input.tokenId)],
         });
       } else {
         setIsErrorInput({ ...isErrorInput, to: true });
       }
     } else {
-      setIsErrorInput({ ...isErrorInput, value: true });
-    }
-  };
-
-  // handleTransfer
-  const handleTransfer = (e) => {
-    e.preventDefault();
-    if (input.value && utils.parseEther(input.value) >= 0) {
-      if (input.to && utils.isAddress(input.to)) {
-        setDisabled(true);
-        writeTransfer({
-          args: [utils.getAddress(input.to), utils.parseEther(input.value)],
-        });
-      } else {
-        setIsErrorInput({ ...isErrorInput, to: true });
-      }
-    } else {
-      setIsErrorInput({ ...isErrorInput, value: true });
+      setIsErrorInput({ ...isErrorInput, tokenId: true });
     }
   };
 
@@ -370,46 +284,76 @@ const MyNFT = ({ activeChain, tokenAddress, tokenABI, account }) => {
     }
   };
 
-  // handleTransferFrom
+  // handleRenounceOwnership
+  const handleRenounceOwnership = (e) => {
+    e.preventDefault();
+    setDisabled(true);
+    writeRenounceOwnership();
+  };
+
+  // handleTransferFrom  safeTransferFrom(address from, address to, uint256 tokenId)
   const handleTransferFrom = (e) => {
     e.preventDefault();
-    if (input.value && utils.parseEther(input.value) >= 0) {
+    let formattedFrom;
+    if (input.from && input.from !== "" && utils.isAddress(input.from)) {
+      formattedFrom = utils.getAddress(input.from);
+    } else {
+      formattedFrom = account?.address;
+    }
+    if (input.to && input.to !== "" && utils.isAddress(input.to)) {
+      const formattedTo = utils.getAddress(input.to);
       if (
-        input.to &&
-        utils.isAddress(input.to) &&
-        input.from &&
-        utils.isAddress(input.from)
+        input.tokenId &&
+        input.tokenId !== "" &&
+        parseInt(input.tokenId) >= 0
       ) {
+        const formattedTokenId = BigNumber.from(input.tokenId);
         setDisabled(true);
         writeTransferFrom({
-          args: [
-            utils.getAddress(input.from),
-            utils.getAddress(input.to),
-            utils.parseEther(input.value),
-          ],
+          args: [formattedFrom, formattedTo, formattedTokenId],
         });
       } else {
-        setIsErrorInput({ ...isErrorInput, to: true, from: true });
+        setIsErrorInput({ ...isErrorInput, tokenId: true });
       }
     } else {
-      setIsErrorInput({ ...isErrorInput, value: true });
+      setIsErrorInput({ ...isErrorInput, to: true });
     }
   };
+
+  // handlePause
+  const handlePause = (e) => {
+    e.preventDefault();
+    setDisabled(true);
+    writePause();
+  };
+
+  // handleUnpause
+  const handleUnpause = (e) => {
+    e.preventDefault();
+    setDisabled(true);
+    writeUnpause();
+  };
+
   const handleInputTo = (e) => {
     setInput({ ...input, to: e.target.value });
     if (isErrorInput.to) setIsErrorInput({ ...isErrorInput, to: false });
   };
+  const handleInputURI = (e) => {
+    setInput({ ...input, URI: e.target.value });
+    if (isErrorInput.URI) setIsErrorInput({ ...isErrorInput, URI: false });
+  };
+
   const handleInputFrom = (e) => {
     setInput({ ...input, from: e.target.value });
     if (isErrorInput.from) setIsErrorInput({ ...isErrorInput, from: false });
   };
-  const handleInputValue = (e) => {
-    setInput({ ...input, value: e.target.value });
-    if (isErrorInput.value) setIsErrorInput({ ...isErrorInput, value: false });
+  const handleTokenId = (e) => {
+    setInput({ ...input, tokenId: e.target.value });
+    if (isErrorInput.tokenId)
+      setIsErrorInput({ ...isErrorInput, tokenId: false });
   };
 
   if (!isMounted) return <></>;
-
   return (
     <Paper elevation={4}>
       <Stack
@@ -420,37 +364,46 @@ const MyNFT = ({ activeChain, tokenAddress, tokenABI, account }) => {
         padding={1}
       >
         <Typography variant="h6" gutterBottom component="div">
-          MyToken
+          {name}, Address : {nftAddress}
         </Typography>
-        <Typography>
-          Owner:{" "}
-          {shortenAddress(tokenOwner ? tokenOwner : constants.AddressZero)},
-          TotalSupply: {formatBalance(token?.totalSupply?.value, 0)}{" "}
-          {token?.symbol}
+        <Typography variant="h6" gutterBottom component="div">
+          Owner: {nftOwner ? nftOwner : constants.AddressZero}, Total Supply:{" "}
+          {totalSupply?.toString()} {symbol}
         </Typography>
-      </Stack>
 
-      <Stack
-        direction="column"
-        justifyContent="flex-start"
-        alignItems="flex-start"
-        spacing={0}
-        padding={1}
-      >
         <Typography color={isOwner ? "blue" : "text.primary"}>
-          Connected: {account?.address} {isOwner && <>(token owner)</>}
+          Connected: {account?.address} {isOwner && <>(NFT owner)</>}
         </Typography>
         <Typography>
-          Balance: {formatBalance(balanceOf, 0)} {token?.symbol}
+          Balance: {balanceOf?.toString()} {symbol}
         </Typography>
-        <Typography>
-          Allowance to spend from owner: {formatBalance(allowance, 0)}{" "}
-          {token?.symbol}
-        </Typography>
-        <Typography>
-          Allowance from {shortenAddress(verifyAddress(input.from))}:{" "}
-          {formatBalance(allowanceOther, 0)} {token?.symbol}
-        </Typography>
+        {parseInt(balanceOf?.toString()) > 0 && (
+          <FormControl>
+            <FormLabel id="nfts" error={isErrorInput.tokenId}>
+              NFTs
+            </FormLabel>
+            <RadioGroup
+              aria-labelledby="nfts"
+              name="tokenId"
+              value={input.tokenId}
+              onChange={handleTokenId}
+            >
+              {nftArray.map((idx) => {
+                return (
+                  <GetNFT
+                    key={idx}
+                    nftAddress={nftAddress}
+                    nftABI={nftABI}
+                    account={account}
+                    isEnabled={isEnabled}
+                    index={idx}
+                  />
+                );
+              })}
+            </RadioGroup>
+          </FormControl>
+        )}
+
         <TextField
           error={isErrorInput.to}
           autoFocus
@@ -459,10 +412,23 @@ const MyNFT = ({ activeChain, tokenAddress, tokenABI, account }) => {
           variant="standard"
           type="text"
           margin="dense"
-          label="Address To? (empty if owner)"
+          label="Address To? (for mint,transfer..)(empty if current)"
           size="small"
           value={input.to}
           onChange={handleInputTo}
+          disabled={disabled}
+        />
+        <TextField
+          error={isErrorInput.URI}
+          fullWidth
+          helperText="Please enter a valid URI"
+          variant="standard"
+          type="text"
+          margin="dense"
+          label="URI"
+          size="small"
+          value={input.URI}
+          onChange={handleInputURI}
           disabled={disabled}
         />
         <TextField
@@ -472,23 +438,10 @@ const MyNFT = ({ activeChain, tokenAddress, tokenABI, account }) => {
           variant="standard"
           type="text"
           margin="dense"
-          label="Address From? (empty if owner)"
+          label="Address From? (empty if current)"
           size="small"
           value={input.from}
           onChange={handleInputFrom}
-          disabled={disabled}
-        />
-        <TextField
-          error={isErrorInput.value}
-          helperText="How many tokens?"
-          variant="standard"
-          type="number"
-          required
-          margin="dense"
-          label="Amount"
-          size="small"
-          value={input.value}
-          onChange={handleInputValue}
           disabled={disabled}
         />
       </Stack>
@@ -504,12 +457,12 @@ const MyNFT = ({ activeChain, tokenAddress, tokenABI, account }) => {
           <Button
             variant="contained"
             size="small"
-            onClick={handleMint}
+            onClick={handleSafeMint}
             disabled={disabled}
-            startIcon={<GetStatusIcon status={statusMint} />}
-            endIcon={<GetStatusIcon status={statusMintWait} />}
+            startIcon={<GetStatusIcon status={statusSafeMint} />}
+            endIcon={<GetStatusIcon status={statusSafeMintWait} />}
           >
-            Mint
+            mint
           </Button>
         )}
         <Button
@@ -520,19 +473,60 @@ const MyNFT = ({ activeChain, tokenAddress, tokenABI, account }) => {
           startIcon={<GetStatusIcon status={statusBurn} />}
           endIcon={<GetStatusIcon status={statusBurnWait} />}
         >
-          Burn
+          burn
+        </Button>
+        <Button
+          variant="contained"
+          size="small"
+          onClick={handleApprove}
+          disabled={disabled}
+          startIcon={<GetStatusIcon status={statusApprove} />}
+          endIcon={<GetStatusIcon status={statusApproveWait} />}
+        >
+          approve
+        </Button>
+      </Stack>
+
+      <Stack
+        direction="row"
+        justifyContent="flex-start"
+        alignItems="flex-start"
+        spacing={1}
+        padding={1}
+      >
+        <Button
+          variant="contained"
+          size="small"
+          onClick={handleTransferFrom}
+          disabled={disabled}
+          startIcon={<GetStatusIcon status={statusTransferFrom} />}
+          endIcon={<GetStatusIcon status={statusTransferFromWait} />}
+        >
+          transfer from
         </Button>
         {isOwner && (
-          <Button
-            variant="contained"
-            size="small"
-            onClick={handleTransferOwnership}
-            disabled={disabled}
-            startIcon={<GetStatusIcon status={statusTransferOwnership} />}
-            endIcon={<GetStatusIcon status={statusTransferOwnershipWait} />}
-          >
-            Transfer Ownership
-          </Button>
+          <>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={handlePause}
+              disabled={disabled}
+              startIcon={<GetStatusIcon status={statusPause} />}
+              endIcon={<GetStatusIcon status={statusPauseWait} />}
+            >
+              pause
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={handleUnpause}
+              disabled={disabled}
+              startIcon={<GetStatusIcon status={statusUnpause} />}
+              endIcon={<GetStatusIcon status={statusUnpauseWait} />}
+            >
+              unpause
+            </Button>
+          </>
         )}
       </Stack>
 
@@ -543,113 +537,40 @@ const MyNFT = ({ activeChain, tokenAddress, tokenABI, account }) => {
         spacing={1}
         padding={1}
       >
-        <Button
-          variant="contained"
-          size="small"
-          onClick={handleIncreaseAllowance}
-          disabled={disabled}
-          startIcon={<GetStatusIcon status={statusIncreaseAllowance} />}
-          endIcon={<GetStatusIcon status={statusIncreaseAllowanceWait} />}
-        >
-          Increase Allowance
-        </Button>
-        <Button
-          variant="contained"
-          size="small"
-          onClick={handleDecreaseAllowance}
-          disabled={disabled}
-          startIcon={<GetStatusIcon status={statusDecreaseAllowance} />}
-          endIcon={<GetStatusIcon status={statusDecreaseAllowanceWait} />}
-        >
-          Decrease Allowance
-        </Button>
+        {isOwner && (
+          <>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={handleTransferOwnership}
+              disabled={disabled}
+              startIcon={<GetStatusIcon status={statusTransferOwnership} />}
+              endIcon={<GetStatusIcon status={statusTransferOwnershipWait} />}
+            >
+              transfer ownership
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={handleRenounceOwnership}
+              disabled={disabled}
+              startIcon={<GetStatusIcon status={statusRenounceOwnership} />}
+              endIcon={<GetStatusIcon status={statusRenounceOwnershipWait} />}
+            >
+              renounce ownership
+            </Button>
+          </>
+        )}
       </Stack>
-
-      <Stack
-        direction="row"
-        justifyContent="flex-start"
-        alignItems="flex-start"
-        spacing={1}
-        padding={1}
-      >
-        <Button
-          variant="contained"
-          size="small"
-          onClick={handleApprove}
-          disabled={disabled}
-          startIcon={<GetStatusIcon status={statusApprove} />}
-          endIcon={<GetStatusIcon status={statusApproveWait} />}
-        >
-          Approve
-        </Button>
-        <Button
-          variant="contained"
-          size="small"
-          onClick={handleTransfer}
-          disabled={disabled}
-          startIcon={<GetStatusIcon status={statusTransfer} />}
-          endIcon={<GetStatusIcon status={statusTransferWait} />}
-        >
-          Transfer
-        </Button>
-        <Button
-          variant="contained"
-          size="small"
-          onClick={handleTransferFrom}
-          disabled={disabled}
-          startIcon={<GetStatusIcon status={statusTransferFrom} />}
-          endIcon={<GetStatusIcon status={statusTransferFromWait} />}
-        >
-          Transfer From
-        </Button>
-      </Stack>
-      {isErrorMint && (
-        <ShowError message="Mint:" flag={isErrorMint} error={errorMint} />
+      {isErrorSafeMint && (
+        <ShowError
+          message="SafeMint:"
+          flag={isErrorSafeMint}
+          error={errorSafeMint}
+        />
       )}
       {isErrorBurn && (
         <ShowError message="Burn:" flag={isErrorBurn} error={errorBurn} />
-      )}
-      {isErrorBurnFrom && (
-        <ShowError
-          message="BurnFrom:"
-          flag={isErrorBurnFrom}
-          error={errorBurnFrom}
-        />
-      )}
-      {isErrorIncreaseAllowance && (
-        <ShowError
-          message="Increase Allowance:"
-          flag={isErrorIncreaseAllowance}
-          error={errorIncreaseAllowance}
-        />
-      )}
-      {isErrorDecreaseAllowance && (
-        <ShowError
-          message="Decrease Allowance:"
-          flag={isErrorDecreaseAllowance}
-          error={errorDecreaseAllowance}
-        />
-      )}
-      {isErrorAllowanceOther && (
-        <ShowError
-          message="Allowance Other:"
-          flag={isErrorAllowanceOther}
-          error={errorAllowanceOther}
-        />
-      )}
-      {isErrorTransfer && (
-        <ShowError
-          message="Transfer:"
-          flag={isErrorTransfer}
-          error={errorTransfer}
-        />
-      )}
-      {isErrorTransferFrom && (
-        <ShowError
-          message="Transfer From:"
-          flag={isErrorTransferFrom}
-          error={errorTransferFrom}
-        />
       )}
       {isErrorApprove && (
         <ShowError
@@ -665,7 +586,87 @@ const MyNFT = ({ activeChain, tokenAddress, tokenABI, account }) => {
           error={errorTransferOwnership}
         />
       )}
+      {isErrorRenounceOwnership && (
+        <ShowError
+          message="Renounce Ownership:"
+          flag={isErrorRenounceOwnership}
+          error={errorRenounceOwnership}
+        />
+      )}
+      {isErrorTransferFrom && (
+        <ShowError
+          message="Transfer From:"
+          flag={isErrorTransferFrom}
+          error={errorTransferFrom}
+        />
+      )}
+      {isErrorPause && (
+        <ShowError message="Pause:" flag={isErrorPause} error={errorPause} />
+      )}
+      {isErrorUnpause && (
+        <ShowError
+          message="Unpause:"
+          flag={isErrorUnpause}
+          error={errorUnpause}
+        />
+      )}
     </Paper>
+  );
+};
+
+const GetNFT = ({ nftAddress, nftABI, account, isEnabled, index }) => {
+  const isMounted = useIsMounted();
+  const {
+    data: nft,
+    isLoading: isLoadingNFT,
+    isError: isErrorNFT,
+    error: errorNFT,
+    status: statusNFT,
+  } = useContractRead(
+    {
+      addressOrName: nftAddress,
+      contractInterface: nftABI,
+    },
+    "tokenOfOwnerByIndex",
+    {
+      args: [account?.address, index],
+      watch: isEnabled,
+      enabled: isEnabled,
+    }
+  );
+  const {
+    data: tokenURI,
+    isLoading: isLoadingTokenURI,
+    isError: isErrorTokenURI,
+    error: errorTokenURI,
+    status: statusTokenURI,
+  } = useContractRead(
+    {
+      addressOrName: nftAddress,
+      contractInterface: nftABI,
+    },
+    "tokenURI",
+    {
+      args: [nft ? nft : 0],
+      watch: isEnabled,
+      enabled: Boolean(isEnabled && nft && !isLoadingNFT && !isErrorNFT),
+    }
+  );
+
+  if (
+    !isMounted ||
+    isLoadingNFT ||
+    isErrorNFT ||
+    isLoadingTokenURI ||
+    isErrorTokenURI
+  )
+    return <></>;
+  return (
+    <FormControlLabel
+      value={nft.toString()}
+      control={<Radio />}
+      label={nft.toString() + ":" + tokenURI}
+    />
   );
 };
 

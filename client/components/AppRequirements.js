@@ -59,8 +59,8 @@ const AppRequirements = () => {
             </Link>
           </Typography>
           <Typography component="div" gutterBottom={false} paragraph={true}>
-            You'll know you've installed git right if you can run: `git
-            --version` and you get an output like `git version x.x.x`
+            You will know you have installed git right if you can run: git
+            --version and you get an output like git version x.x.x
           </Typography>
           <Typography component="div">
             <Link
@@ -72,7 +72,7 @@ const AppRequirements = () => {
             </Link>
           </Typography>
           <Typography component="div" gutterBottom={false} paragraph={true}>
-            You'll know you've installed nodejs right if you can run: `node
+            You will know you have installed nodejs right if you can run: `node
             --version` and you get an ouput like: `vx.x.x`
           </Typography>
           <Typography component="div">
@@ -85,7 +85,7 @@ const AppRequirements = () => {
             </Link>
           </Typography>
           <Typography component="div" gutterBottom={false} paragraph={true}>
-            You'll know you've installed npm right if you can run: `npm
+            You will know you have installed npm right if you can run: `npm
             --version` and you get an output like: `x.x.x`
           </Typography>
           <Typography component="div">
@@ -100,15 +100,15 @@ const AppRequirements = () => {
           <Typography component="div" gutterBottom={false} paragraph={true}>
             <div>Here is a simple way to install brownie.</div>
             <code>pip install eth-brownie</code>
-            <div>Or, if that doesn't work, via pipx:</div>
+            <div>Or, if that does not work, via pipx:</div>
             <code>pip install --user pipx pipx ensurepath</code>
             <div>restart your terminal, then</div>
             <code>pipx install eth-brownie</code>
           </Typography>
           <Typography component="div" gutterBottom={false} paragraph={true}>
-            You'll know you've installed brownie right if you can run: `brownie
-            --version` and you get an output like: `Brownie v1.18.2 - Python
-            development framework for Ethereum`
+            You will know you have installed brownie right if you can run:
+            `brownie --version` and you get an output like: `Brownie v1.18.2 -
+            Python development framework for Ethereum`
           </Typography>
         </Paper>
       </Stack>

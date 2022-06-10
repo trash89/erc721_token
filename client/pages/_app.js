@@ -20,7 +20,7 @@ import { alchemyProvider } from "wagmi/providers/alchemy";
 import { publicProvider } from "wagmi/providers/public";
 if (!process.env.NEXT_PUBLIC_ALCHEMY_ID)
   throw new Error(
-    "Missing environment variables. Make sure to set your .env file."
+    "Missing environment variable NEXT_PUBLIC_ALCHEMY_ID. Make sure to set your .env file."
   );
 
 const { chains, provider } = configureChains(
@@ -32,7 +32,7 @@ const { chains, provider } = configureChains(
 );
 
 const { connectors } = getDefaultWallets({
-  appName: "Ethereum App, with Wagmi,Rainbowkit and Material-UI",
+  appName: "ERC721, with Wagmi,Rainbowkit and Material-UI",
   chains,
 });
 

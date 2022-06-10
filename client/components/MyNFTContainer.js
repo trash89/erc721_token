@@ -8,7 +8,7 @@ import { SupportedNetworks, MyNFT } from "../components";
 const MyNFTContainer = () => {
   const isMounted = useIsMounted();
   const { activeChain } = useNetwork();
-  const { address: tokenAddress, ABI: tokenABI } = useGetContract("MyNFT");
+  const { address: nftAddress, ABI: nftABI } = useGetContract("MyNFT");
   const {
     data: account,
     error: errorAccount,
@@ -16,7 +16,7 @@ const MyNFTContainer = () => {
     isLoading: isLoadingAccount,
     isSuccess: isSuccessAccount,
   } = useAccount({
-    enabled: Boolean(isMounted && activeChain && addressNotZero(tokenAddress)),
+    enabled: Boolean(isMounted && activeChain && addressNotZero(nftAddress)),
   });
 
   if (!isMounted) return <></>;
@@ -27,7 +27,7 @@ const MyNFTContainer = () => {
   if (isErrorAccount) {
     return <div>Error loading account: {errorAccount?.message}</div>;
   }
-  if (!addressNotZero(tokenAddress)) {
+  if (!addressNotZero(nftAddress)) {
     return (
       <div>Contract not deployed on this network : {activeChain?.name}</div>
     );
@@ -35,7 +35,7 @@ const MyNFTContainer = () => {
 
   return (
     <>
-      {isSuccessAccount && addressNotZero(tokenAddress) && (
+      {isSuccessAccount && (
         <Stack
           direction="column"
           spacing={1}
@@ -45,8 +45,8 @@ const MyNFTContainer = () => {
         >
           <MyNFT
             activeChain={activeChain}
-            tokenAddress={tokenAddress}
-            tokenABI={tokenABI}
+            nftAddress={nftAddress}
+            nftABI={nftABI}
             account={account}
           />
         </Stack>

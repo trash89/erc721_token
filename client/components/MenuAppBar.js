@@ -22,10 +22,8 @@ const MenuAppBar = () => {
             </IconButton>
           </a>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Ethereum Application
+            MyNFT
           </Typography>
-          <a href="/mynft">MyNFT</a>
-
           <ConnectButton
             accountStatus="address"
             chainStatus="name"

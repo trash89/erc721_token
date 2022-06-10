@@ -1,13 +1,13 @@
 import useIsMounted from "./useIsMounted";
 import useIsContractOwner from "./useIsContractOwner";
-import useTokenDetails from "./useTokenDetails";
+import useNFTDetails from "./useNFTDetails";
 import useGetContract from "./useGetContract";
 import useGetFuncWrite from "./useGetFuncWrite";
 
 export {
   useIsMounted,
   useIsContractOwner,
-  useTokenDetails,
+  useNFTDetails,
   useGetContract,
   useGetFuncWrite,
 };
