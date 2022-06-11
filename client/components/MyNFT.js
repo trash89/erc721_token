@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
@@ -11,8 +11,8 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import FormControl from "@mui/material/FormControl";
 import FormLabel from "@mui/material/FormLabel";
 
-import { utils, constants, BigNumber } from "ethers";
-import { useContract, useContractRead } from "wagmi";
+import { ethers, utils, constants, BigNumber } from "ethers";
+import { useContract, useContractRead, useProvider } from "wagmi";
 import { addressNotZero, shortenAddress, formatBalance } from "../utils/utils";
 import { useIsMounted, useNFTDetails, useGetFuncWrite } from "../hooks";
 import { GetStatusIcon, ShowError } from ".";
@@ -69,10 +69,6 @@ const MyNFT = ({ activeChain, nftAddress, nftABI, account }) => {
     interfaceId: false,
   });
 
-  const nftContract = useContract({
-    addressOrName: nftAddress,
-    contractInterface: nftABI,
-  });
   // NFT details for display
   const {
     isSuccess,
@@ -80,9 +76,25 @@ const MyNFT = ({ activeChain, nftAddress, nftABI, account }) => {
     ContractOwner: nftOwner,
     name,
     symbol,
-    balanceOf,
     totalSupply,
   } = useNFTDetails(activeChain, nftAddress, nftABI, account);
+
+  const {
+    data: balanceOf,
+    isError: isErrorBalanceOf,
+    refetch: refetchBalanceOf,
+  } = useContractRead(
+    {
+      addressOrName: nftAddress,
+      contractInterface: nftABI,
+    },
+    "balanceOf",
+    {
+      args: [account?.address],
+      enabled: isEnabled,
+      watch: isEnabled,
+    }
+  );
 
   let nftArray = [
     ...Array.from({ length: parseInt(balanceOf) }, (_, idx) => `${idx}`),
@@ -177,6 +189,10 @@ const MyNFT = ({ activeChain, nftAddress, nftABI, account }) => {
     status: statusUnpause,
     statusWait: statusUnpauseWait,
   } = useGetFuncWrite("unpause", activeChain, nftAddress, nftABI, isEnabled);
+
+  useEffect(() => {
+    refetchBalanceOf();
+  }, [input.tokenId, handleSafeMint, handleBurn, handleTokenId]);
 
   // useEffect to setup values
   useEffect(() => {
@@ -622,6 +638,7 @@ const GetNFT = ({ nftAddress, nftABI, account, isEnabled, index }) => {
     isError: isErrorNFT,
     error: errorNFT,
     status: statusNFT,
+    refetch: refetchTokenOfOwnerByIndex,
   } = useContractRead(
     {
       addressOrName: nftAddress,
@@ -640,6 +657,7 @@ const GetNFT = ({ nftAddress, nftABI, account, isEnabled, index }) => {
     isError: isErrorTokenURI,
     error: errorTokenURI,
     status: statusTokenURI,
+    refetch: refetchTokenURI,
   } = useContractRead(
     {
       addressOrName: nftAddress,
@@ -652,6 +670,10 @@ const GetNFT = ({ nftAddress, nftABI, account, isEnabled, index }) => {
       enabled: Boolean(isEnabled && nft && !isLoadingNFT && !isErrorNFT),
     }
   );
+  useEffect(() => {
+    refetchTokenOfOwnerByIndex();
+    refetchTokenURI();
+  }, []);
 
   if (
     !isMounted ||
@@ -663,6 +685,7 @@ const GetNFT = ({ nftAddress, nftABI, account, isEnabled, index }) => {
     return <></>;
   return (
     <FormControlLabel
+      key={index}
       value={nft.toString()}
       control={<Radio />}
       label={nft.toString() + ":" + tokenURI}
